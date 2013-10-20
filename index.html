@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8" />
+	<title>Password Post-It</title>
+	<meta name="Description" content="" />
+	<meta name="Keywords" content="" />
+	<link rel="stylesheet" type="text/css" href="css/style.css" media="screen" />
+	<script type="text/javascript" src="js/sha256.js"></script>
+	<script type="text/javascript">
+		function $( id ) {
+		  return document.getElementById( id );
+		}
+		function extract_number( sha256, modulo, index ) {
+			var str = sha256[ ( (index+1) * modulo ) % sha256.length ] + sha256[ ( (index+1) + modulo ) % sha256.length ];
+			return parseInt( str, 16 );
+		}
+		function setCharAt(str,index,chr) {
+		  if(index > str.length-1) return str;
+		  return str.substr(0,index) + chr + str.substr(index+1);
+		}
+		function do_job() {
+		  var seed = $('id_seed').value;
+		  var website = $('id_website').value;
+		  $("resultat").innerHTML = "";
+		  var error = false;
+		  if ( seed.length < 4 ) {
+			error = true;
+			$("id_seed_error").innerHTML = "Seed is missing or too short";
+		  } 
+		  if ( website.length < 4 ) {
+			error = true;
+			$("id_website_error").innerHTML = "Website URL is missing or too short";
+		  }
+		  if ( error )
+			return false;
+		  $("id_seed_error").innerHTML = "";
+		  $("id_website_error").innerHTML = "";
+		  var res = SHA256( seed + website + seed );
+		  var mod = parseInt( res[0] + res[1], 16 );
+		  var m_str = "", m_int = "", m_char = "";
+		  var alpha = "aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ";
+		  var numb = "0123456789";
+		  var specials = "[{}]+-_*@$/";
+		  // extract 6 string
+		  for( var i=0; i<6; i++ ) {
+			var idx = extract_number( res, mod, i ) % alpha.length;
+			m_str += alpha.charAt( idx );
+		  }
+		  // extract 3 number
+		  for( var i=0; i<3; i++ ) {
+			var idx = extract_number( res, mod, i + 6 ) % numb.length;
+			m_int += numb.charAt( idx );
+		  }
+		  // extract 3 special chars
+		  for( var i=0; i<3; i++ ) {
+			var idx = extract_number( res, mod, i + 9 ) % specials.length;
+			m_char += specials.charAt( idx );
+		  }
+		  var password = m_str + m_int + m_char;
+		  for( var i=0; i<15; i++ ) {
+			var idx1 = extract_number( res, mod, i ) % password.length;
+			var idx2 = i % password.length;
+			// always start password with a letter
+			if ( idx1 == 0 || idx2 == 0 ) continue;
+			var t = password.charAt(idx1);
+			password = setCharAt( password, idx1, password.charAt(idx2) );
+			password = setCharAt( password, idx2, t );
+		  }
+		//SSA
+		  //$('resultat').innerHTML = password;
+		  $('resultat').value = password;
+		  $('resultat').focus();
+		  $('resultat').select();
+		  return false;
+		}
+		function do_clear() {
+		  $('resultat').innerHTML = "";
+		  $('id_seed').value =  "";
+		  $('id_seed_error').innerHTML = "";
+		  $('id_website').value = "";
+		  $('id_website_error').innerHTML = "";
+		}
+		function copytext() {
+		  window.clipboardData.setData( $('resultat').innerHTML, text);     
+		  return false;
+		}
+	</script>
+</head>
+<body>
+<a href="https://github.com/xoofoo-project/Password-Post-It"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="Fork me on GitHub"></a>
+	<div id="wrapper">
+		<header>
+			<h1 class="info animated shake">Password Post-It :-)</h1>
+		</header>
+		<section id="firstcontent">
+			<ol>
+				<li><span>1.</span><p>Fatigué(e) de devoir retenir toujours plein de mots de passe ?<br>Anxieux de paumer encore cette fichue clé usb sur laquelle ils sont tous stockés ?<br>Pas envie d'utiliser le même mot de passe sur tous les sites ?</p></li>
+				<li><span>2.</span><p>Utilisez une phrase secrète (mot de passe) et saisissez l'adresse d'un site pour générer un mot de passe <i>"sha256"</i> unique associé :</p></li>
+			</ol>
+		</section>
+		<section class="content">
+			<form method="post" action="#">
+				<input type="password" name="f_seed" id="id_seed" autocomplete="off" placeholder="Phrase secrète" required autofocus />
+				<div class="error" id="id_seed_error"></div>
+				<input type="text" name="f_website" id="id_website" autocomplete="off" placeholder="Adresse du site" required autofocus />
+				<div class="error" id="id_website_error"></div>
+				<button href="#" onclick="return do_job();">Obtenir le mot de passe associé</button>
+				<input type="text" id="resultat" name="resultat" value="" placeholder="Mot de passe associé"/>
+				<button href="#" onclick="return do_clear();">Effacer ce formulaire</button>
+			</form>
+		</section>
+		<section id="secondcontent">
+			<ol>
+				<li><span>3.</span><p>Le mot de passe est généré sur votre navigateur, grâce à un code javascript.<br>À aucun moment la clé privée n'est transmise sur le réseau, pas plus que le champs du site ou le mot de passe obtenu en résultat.<br>Il nous est impossible de connaître cette clé secrète sauf si vous vous appelez Rodolphe, que votre mot de passe est votre prénom et que vous nous dites comment vous vous appelez.<br>Tout va reposer sur la phrase secrète. Il ne faut surtout pas la divulguer... (encore moins que les mots de passes des sites)</p></li>
+			</ol>
+		</section>
+		<section class="reset" />
+		<footer>
+			<p>Crédits à : Stephs et Bagolu (motdepassealacon.com) + Angel Marin et Paul Johnston (webtoolkit.info)</p>
+		</footer>
+	</div>
+</body>
+</html>
